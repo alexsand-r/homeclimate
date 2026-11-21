@@ -6,7 +6,7 @@ export const Moisture = () => {
         <div className="flex items-center gap-2">
           <span className="w-7 h-7 rounded-lg bg-blue-400/12 border border-blue-400/25 flex items-center justify-center text-blue-300">
             <svg
-              class="w-4 h-4"
+              className="w-4 h-4"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"

@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="uk" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ESP32 Sensor — Мобільний UI макет</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    /* М'який графітово-сірий фон без різкого чорного контрасту */
+    body {
+      background-color: #13171e;
+      background-image: radial-gradient(circle at 50% 0%, #202733 0%, #13171e 75%);
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.45; transform: scale(0.88); }
+    }
+
+    .live-dot {
+      animation: pulse-dot 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+
+    @keyframes spin-once {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .spin-anim {
+      animation: spin-once 0.55s ease-in-out;
+    }
+  </style>
+</head>
+<body class="min-h-screen text-slate-200 flex flex-col items-center justify-center p-0 sm:p-6 antialiased selection:bg-amber-400/20 selection:text-amber-100">
+
+  <!-- Підказка зверху для десктопу -->
+  <div class="hidden sm:flex items-center gap-2 mb-3 text-xs text-slate-400 font-mono">
+    <span>Mobile Viewport (390px)</span>
+    <span>·</span>
+    <span>Клікни на бейдж статусу, щоб перевірити стан офлайн</span>
+  </div>
+
+  <!-- Рамка мобільного екрана у м'яких сланцево-сірих тонах -->
+  <main class="w-full sm:w-[390px] min-h-screen sm:min-h-[680px] bg-[#1c2128] sm:rounded-[32px] sm:border sm:border-[#343d4d] sm:shadow-[0_24px_70px_rgba(10,13,18,0.65)] flex flex-col justify-between px-4 py-6 sm:p-5 relative overflow-hidden">
+
+    <!-- М'який верхній декоративний блік -->
+    <div class="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 w-72 h-40 bg-sky-400/5 blur-3xl rounded-full"></div>
+
+    <!-- Вміст екрана -->
+    <div class="space-y-4 relative z-10">
+
+      <!-- 1. ШАПКА (HEADER) -->
+      <header class="flex items-start justify-between gap-3 pt-1">
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-lg font-semibold tracking-tight text-slate-100">ESP32 Sensor</h1>
+            <span class="text-[10px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded bg-[#252c37] text-slate-300 border border-[#343d4d]">v1.0</span>
+          </div>
+          <p id="subtitleText" class="text-xs text-slate-400 font-mono mt-1">
+            192.168.1.120 · <span id="lastUpdated">2 с тому</span>
+          </p>
+        </div>
+
+        <!-- Інтерактивний індикатор з'єднання -->
+        <button
+          id="statusBadge"
+          type="button"
+          title="Натисни, щоб перемкнути стан з'єднання"
+          class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-400/12 text-emerald-300 border border-emerald-400/25 transition-all active:scale-95 cursor-pointer shrink-0"
+        >
+          <span id="statusDot" class="w-2 h-2 rounded-full bg-emerald-400 live-dot"></span>
+          <span id="statusLabel">Підключено</span>
+        </button>
+      </header>
+
+      <!-- 2. РЯД КНОПОК ДІЙ (2 рівні колонки) -->
+      <section class="grid grid-cols-2 gap-2.5" aria-label="Дії з пристроєм">
+        <button
+          id="refreshBtn"
+          type="button"
+          class="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-[#252c37] hover:bg-[#2d3543] active:scale-[0.98] border border-[#343d4d] text-sm font-medium text-slate-200 transition-all cursor-pointer shadow-sm"
+        >
+          <svg id="refreshIcon" class="w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+            <path d="M3 3v5h5" />
+            <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+            <path d="M16 16h5v5" />
+          </svg>
+          <span>Оновити</span>
+        </button>
+
+        <button
+          id="reconnectBtn"
+          type="button"
+          class="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-[#252c37] hover:bg-[#2d3543] active:scale-[0.98] border border-[#343d4d] text-sm font-medium text-slate-200 transition-all cursor-pointer shadow-sm"
+        >
+          <svg class="w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m17 2 4 4-4 4" />
+            <path d="M3 11v-1a4 4 0 0 1 4-4h14" />
+            <path d="m7 22-4-4 4-4" />
+            <path d="M21 13v1a4 4 0 0 1-4 4H3" />
+          </svg>
+          <span>Перепідкл.</span>
+        </button>
+      </section>
+
+      <!-- 3. ГОЛОВНІ КАРТКИ МЕТРИК (вертикальний стек без графіка та дельт) -->
+      <section class="space-y-3" aria-label="Поточні показники">
+
+        <!-- Картка 1: ТЕМПЕРАТУРА -->
+        <article id="tempCard" class="rounded-2xl bg-[#252c37] border border-[#343d4d] p-4 relative overflow-hidden transition-opacity duration-200 shadow-sm">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="w-7 h-7 rounded-lg bg-amber-400/12 border border-amber-400/25 flex items-center justify-center text-amber-300">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z" />
+                </svg>
+              </span>
+              <span class="text-xs font-semibold tracking-wider uppercase text-slate-300">Температура</span>
+            </div>
+
+            <span id="tempPill" class="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-amber-400/12 text-amber-200 border border-amber-400/25">
+              Комфортно
+            </span>
+          </div>
+
+          <div class="my-4 flex items-baseline justify-center">
+            <span id="tempValue" class="text-[46px] leading-none font-bold tracking-tight text-slate-100 tabular-nums">22.4</span>
+            <span class="text-xl font-medium text-amber-300 ml-1.5">°C</span>
+          </div>
+
+          <div class="flex items-center justify-between text-xs text-slate-400 pt-2.5 border-t border-[#343d4d]/80">
+            <span>Норма: 18..26 °C</span>
+          </div>
+        </article>
+
+        <!-- Картка 2: ВОЛОГІСТЬ -->
+        <article id="humCard" class="rounded-2xl bg-[#252c37] border border-[#343d4d] p-4 relative overflow-hidden transition-opacity duration-200 shadow-sm">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="w-7 h-7 rounded-lg bg-sky-400/12 border border-sky-400/25 flex items-center justify-center text-sky-300">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z" />
+                </svg>
+              </span>
+              <span class="text-xs font-semibold tracking-wider uppercase text-slate-300">Вологість</span>
+            </div>
+
+            <span id="humPill" class="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-sky-400/12 text-sky-200 border border-sky-400/25">
+              Оптимально
+            </span>
+          </div>
+
+          <div class="my-4 flex items-baseline justify-center">
+            <span id="humValue" class="text-[46px] leading-none font-bold tracking-tight text-slate-100 tabular-nums">48.0</span>
+            <span class="text-xl font-medium text-sky-300 ml-1.5">%</span>
+          </div>
+
+          <div class="flex items-center justify-between text-xs text-slate-400 pt-2.5 border-t border-[#343d4d]/80">
+            <span>Норма: 40..60 %</span>
+          </div>
+        </article>
+
+      </section>
+
+    </div>
+
+    <!-- 4. МІНІМАЛЬНИЙ ФУТЕР -->
+    <footer class="pt-4 mt-6 border-t border-[#343d4d]/70 flex items-center justify-between text-[11px] font-mono text-slate-400 relative z-10">
+      <span id="clientSourceLabel">MockSensorClient</span>
+      <span>HTTP /data</span>
+    </footer>
+
+  </main>
+
+  <script>
+    // Поточний стан датчика (мок-дані)
+    let isConnected = true;
+    let secondsAgo = 2;
+    let currentTemp = 22.4;
+    let currentHum = 48.0;
+
+    // Пороги норми
+    const TEMP_MIN = 18;
+    const TEMP_MAX = 26;
+    const HUM_MIN = 40;
+    const HUM_MAX = 60;
+
+    // Елементи DOM
+    const statusBadge = document.getElementById('statusBadge');
+    const statusDot = document.getElementById('statusDot');
+    const statusLabel = document.getElementById('statusLabel');
+    const lastUpdatedEl = document.getElementById('lastUpdated');
+    const tempValueEl = document.getElementById('tempValue');
+    const humValueEl = document.getElementById('humValue');
+    const tempPillEl = document.getElementById('tempPill');
+    const humPillEl = document.getElementById('humPill');
+    const tempCard = document.getElementById('tempCard');
+    const humCard = document.getElementById('humCard');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const refreshIcon = document.getElementById('refreshIcon');
+    const reconnectBtn = document.getElementById('reconnectBtn');
+
+    // Визначення статусу комфорту для температури
+    function updateTempStatus(temp) {
+      if (!isConnected) {
+        tempPillEl.textContent = 'Немає даних';
+        tempPillEl.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-500/15 text-slate-400 border border-slate-500/25';
+        return;
+      }
+
+      if (temp < TEMP_MIN) {
+        tempPillEl.textContent = 'Прохолодно';
+        tempPillEl.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-sky-400/15 text-sky-200 border border-sky-400/25';
+      } else if (temp > TEMP_MAX) {
+        tempPillEl.textContent = 'Спекотно';
+        tempPillEl.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-rose-400/15 text-rose-200 border border-rose-400/25';
+      } else {
+        tempPillEl.textContent = 'Комфортно';
+        tempPillEl.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-amber-400/12 text-amber-200 border border-amber-400/25';
+      }
+    }
+
+    // Визначення статусу комфорту для вологості
+    function updateHumStatus(hum) {
+      if (!isConnected) {
+        humPillEl.textContent = 'Немає даних';
+        humPillEl.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-500/15 text-slate-400 border border-slate-500/25';
+        return;
+      }
+
+      if (hum < HUM_MIN) {
+        humPillEl.textContent = 'Сухо';
+        humPillEl.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-amber-400/15 text-amber-200 border border-amber-400/25';
+      } else if (hum > HUM_MAX) {
+        humPillEl.textContent = 'Волого';
+        humPillEl.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-indigo-400/15 text-indigo-200 border border-indigo-400/25';
+      } else {
+        humPillEl.textContent = 'Оптимально';
+        humPillEl.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-sky-400/12 text-sky-200 border border-sky-400/25';
+      }
+    }
+
+    // Оновлення інтерфейсу карток
+    function renderTelemetry() {
+      if (isConnected) {
+        tempValueEl.textContent = currentTemp.toFixed(1);
+        humValueEl.textContent = currentHum.toFixed(1);
+        tempCard.classList.remove('opacity-60');
+        humCard.classList.remove('opacity-60');
+      } else {
+        tempValueEl.textContent = '—.—';
+        humValueEl.textContent = '—.—';
+        tempCard.classList.add('opacity-60');
+        humCard.classList.add('opacity-60');
+      }
+
+      updateTempStatus(currentTemp);
+      updateHumStatus(currentHum);
+    }
+
+    // Імітація нового пакету даних від ESP32
+    function fetchMockReading() {
+      if (!isConnected) return;
+
+      const deltaT = (Math.random() - 0.48) * 0.4;
+      const deltaH = (Math.random() - 0.5) * 1.2;
+
+      currentTemp = Math.max(16.5, Math.min(28.0, Number((currentTemp + deltaT).toFixed(1))));
+      currentHum = Math.max(32.0, Math.min(68.0, Number((currentHum + deltaH).toFixed(1))));
+
+      secondsAgo = 0;
+      lastUpdatedEl.textContent = 'щойно';
+      renderTelemetry();
+    }
+
+    // Перемикання стану з'єднання (Online / Offline)
+    function setConnectionState(connected) {
+      isConnected = connected;
+      if (isConnected) {
+        statusBadge.className = 'inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-400/12 text-emerald-300 border border-emerald-400/25 transition-all active:scale-95 cursor-pointer shrink-0';
+        statusDot.className = 'w-2 h-2 rounded-full bg-emerald-400 live-dot';
+        statusLabel.textContent = 'Підключено';
+        secondsAgo = 0;
+        lastUpdatedEl.textContent = 'щойно';
+      } else {
+        statusBadge.className = 'inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-rose-400/12 text-rose-300 border border-rose-400/25 transition-all active:scale-95 cursor-pointer shrink-0';
+        statusDot.className = 'w-2 h-2 rounded-full bg-rose-400';
+        statusLabel.textContent = 'Немає зв’язку';
+        lastUpdatedEl.textContent = 'таймаут запиту';
+      }
+      renderTelemetry();
+    }
+
+    statusBadge.addEventListener('click', () => {
+      setConnectionState(!isConnected);
+    });
+
+    // Кнопка "Оновити"
+    refreshBtn.addEventListener('click', () => {
+      refreshIcon.classList.remove('spin-anim');
+      void refreshIcon.offsetWidth;
+      refreshIcon.classList.add('spin-anim');
+
+      if (!isConnected) {
+        setConnectionState(true);
+      }
+      fetchMockReading();
+    });
+
+    // Кнопка "Перепідкл."
+    reconnectBtn.addEventListener('click', () => {
+      setConnectionState(true);
+      fetchMockReading();
+    });
+
+    // Лічильник секунд та автооновлення кожні 4 секунди
+    setInterval(() => {
+      if (!isConnected) return;
+      secondsAgo++;
+      lastUpdatedEl.textContent = `${secondsAgo} с тому`;
+      if (secondsAgo >= 4) {
+        fetchMockReading();
+      }
+    }, 1000);
+
+    // Початковий рендер
+    renderTelemetry();
+  </script>
+</body>
+</html>

@@ -9,7 +9,7 @@ import { MOCK_READINGS } from "./mocks/data";
 
 function App() {
   const [lastUpdatedAt, setLastUpdatedAt] = useState<number>(() => Date.now());
-  const [deviceIp, setDeviceIp] = useState<string>("192.168.1.120");
+  const [deviceIp] = useState<string>("192.168.1.120");
   const [isConnected, setIsConnected] = useState<boolean>(true);
   const [readingIndex, setReadingIndex] = useState<number>(0);
   const currentReading = MOCK_READINGS[readingIndex];

@@ -1,9 +1,12 @@
 // BtnReconnect
+interface BtnReconnectProps {
+  handleConnect: () => void;
+}
 
-export const BtnReconnect = () => {
+export const BtnReconnect = ({ handleConnect }: BtnReconnectProps) => {
   return (
     <button
-      id="reconnectBtn"
+      onClick={handleConnect}
       type="button"
       className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-surface-card hover:bg-surface-hover active:scale-[0.98] border border-border-subtle text-sm font-medium text-slate-200 transition-all cursor-pointer shadow-sm w-full"
     >

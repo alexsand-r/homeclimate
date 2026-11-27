@@ -1,31 +1,47 @@
-import { useState } from "react";
-
-import { BtnReconnect } from "./components/BtnReconnect";
+import { useState, useEffect } from "react";
 import { BtnUpdate } from "./components/BtnUpdate";
 import { Header } from "./components/Header";
 import { Moisture } from "./components/Moisture";
 import { Temperature } from "./components/Temperature";
-import { MOCK_READINGS } from "./mocks/data";
+import type { TelemetryReading } from "./types/telemetry";
+import type { ApiReading } from "./types/api";
+import { CurrentDate } from "./components/CurrentDate";
+
+const CLIMATE_API_URL = "http://192.168.1.13/api/climate";
 
 function App() {
-  const [lastUpdatedAt, setLastUpdatedAt] = useState<number>(() => Date.now());
-  const [deviceIp] = useState<string>("192.168.1.120");
-  const [isConnected, setIsConnected] = useState<boolean>(true);
-  const [readingIndex, setReadingIndex] = useState<number>(0);
-  const currentReading = MOCK_READINGS[readingIndex];
+  const [reading, setReading] = useState<TelemetryReading | null>(null);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<number | null>(null);
+  const [deviceIp] = useState<string>("192.168.1.13");
+  const [isConnected, setIsConnected] = useState<boolean>(false);
 
-  const handleUpdate = () => {
-    setReadingIndex((prevIndex) => {
-      if (prevIndex >= MOCK_READINGS.length - 1) {
-        return 0;
-      }
-      return prevIndex + 1;
-    });
-    setLastUpdatedAt(Date.now());
+  const load = () => {
+    fetch(CLIMATE_API_URL)
+      .then((response) => {
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response.json() as Promise<ApiReading>;
+      })
+      .then((data: ApiReading) => {
+        const telemetry: TelemetryReading = {
+          temperature: data.temperature,
+          humidity: data.humidity,
+        };
+
+        setReading(telemetry);
+        setLastUpdatedAt(Date.now());
+        setIsConnected(true);
+      })
+      .catch((err) => {
+        console.error("Error fetching climate data:", err);
+        setIsConnected(false);
+      });
   };
-  const handleConnect = () => {
-    setIsConnected((prev) => !prev);
-  };
+
+  useEffect(() => {
+    load();
+    const id = setInterval(load, 10_000);
+    return () => clearInterval(id);
+  }, []);
 
   return (
     <div className="min-h-dvh bg-screen-bg text-text-primary p-2 flex flex-col">
@@ -39,11 +55,11 @@ function App() {
           className="flex items-center justify-between gap-4 mb-5"
           aria-label="Дії з пристроєм"
         >
-          <BtnUpdate handleUpdate={handleUpdate} />
-          <BtnReconnect handleConnect={handleConnect} />
+          <BtnUpdate updateData={load} />
+          <CurrentDate />
         </section>
-        <Temperature temperature={currentReading.temperature} />
-        <Moisture moisture={currentReading.humidity} />
+        <Temperature temperature={reading?.temperature ?? null} />
+        <Moisture moisture={reading?.humidity ?? null} />
       </main>
     </div>
   );
